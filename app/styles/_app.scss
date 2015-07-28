@@ -1,0 +1,35 @@
+body {
+  padding-top: 20px;
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+table.item-table {
+  tr span.action-buttons { display:none;}
+  tr:hover span.action-buttons { display:inline-block;}
+}
+
+td.ellipsis {
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.col-centered{
+  float: none;
+  margin: 0 auto;
+}
+.validation-error {
+  display: none;
+}
+.error .validation-error {
+  display: block;
+  color: red;
+}
+.Select .Select-control {
+  padding: 8px 52px 0px 10px;
+  .Select-placeholder {
+    padding: 10px 52px 8px 10px;
+    line-height: 17px;
+    // margin-top: -2px;
+  }
+}
