@@ -9,8 +9,8 @@ import logger from "koa-logger";
 import favicon from "koa-favicon";
 import staticCache from "koa-static-cache";
 import responseTime from "koa-response-time";
-import bodyParser from "koa-body-parser";
-import koaRouter from "koa-router";
+import bodyParser from "koa-bodyparser";
+// import koaRouter from "koa-router";
 
 import router from "./router";
 import config from "./config/init";
@@ -20,7 +20,7 @@ import {clone} from "lodash";
 
 const app = koa();
 const env = process.env.NODE_ENV || "development";
-const appRouter = koaRouter();
+// const appRouter = koaRouter();
 
 app.use(responseTime());
 app.use(logger());
@@ -99,42 +99,43 @@ app.use(function*(next) {
 	}
 
 	this.request.user = user;
-	if (user) {
-		// Add user to get condition for API
-		if (this.request.method === "GET") {
-			var conditions;
-			var query = clone(this.request.query);
-			try {
-				conditions = (query.conditions && JSON.parse(query.conditions)) || {};
-			} catch (err) {
-				console.error(err);
-				conditions = {};
-			}
+	// if (user) {
+	// 	// Add user to get condition for API
+	// 	if (this.request.method === "GET") {
+	// 		var conditions;
+	// 		var query = clone(this.request.query);
+	// 		try {
+	// 			conditions = (query.conditions && JSON.parse(query.conditions)) || {};
+	// 		} catch (err) {
+	// 			console.error(err);
+	// 			conditions = {};
+	// 		}
 
-			conditions.user = user._id;
-			query.conditions = JSON.stringify(conditions);
-			this.request.query = query;
-			console.log("has query");
-			console.log(this.request.query);
-		}
+	// 		conditions.user = user._id;
+	// 		query.conditions = JSON.stringify(conditions);
+	// 		this.request.query = query;
+	// 		console.log("has query");
+	// 		console.log(this.request.query);
+	// 	}
 
-		// Add user to post data for API
-		else if (this.request.body) {
-			console.log("has body");
-			this.request.body.user = user._id;
-			console.log(this.request.body);
-		}
-	}
+	// 	// Add user to post data for API
+	// 	else if (this.request.body) {
+	// 		console.log("has body");
+	// 		this.request.body.user = user._id;
+	// 		console.log(this.request.body);
+	// 	}
+	// }
 
 	yield next;
 });
 
 // Connect REST API
-rest(appRouter);
+rest(app);
+// rest(appRouter);
 
-app
-	.use(appRouter.routes())
-	.use(appRouter.allowedMethods());
+// app
+// 	.use(appRouter.routes())
+// 	.use(appRouter.allowedMethods());
 
 app.use(router);
 var port = process.env.PORT || config.port || 3000;

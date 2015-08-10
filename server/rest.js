@@ -1,4 +1,4 @@
-import generateApi from "koa-mongo-rest";
+import generateApi from "./restable/lib";
 
 import Car from "./models/car";
 import Director from "./models/director";
@@ -6,6 +6,8 @@ import Film from "./models/film";
 import User from "./models/user";
 import bcrypt from "bcrypt";
 import uuid from "node-uuid";
+
+import koaRouter from "koa-router";
 
 export default function(app) {
 	const mongoUrl = process.env.MONGOHQ_URL || process.env.MONGOLAB_URI || "127.0.0.1:27017/webpackexample";
@@ -15,11 +17,28 @@ export default function(app) {
 
 	// app.use(koaRouter(app));
 
-	generateApi(app, Car, "/api");
-	generateApi(app, Film, "/api");
-	generateApi(app, Director, "/api");
+	// var CarsController = generateApi(app, Car, "/api");
+	var FilmsController = generateApi(app, Film, "/api");
+	FilmsController.use(function*(next) {
+		console.log('fimscontroller middleware');
+		console.log(this.request.url);
+		yield next;
+	});
 
-	app.post("/auth/register", function*(next) {
+	FilmsController.conditionsInterceptor(function(ctx, conditions){
+		if (ctx.request.user) {
+			conditions.user = ctx.request.user._id;
+		}
+		return conditions;
+	});
+
+	FilmsController.mount();
+	var DirectorsController = generateApi(app, Director, "/api");
+	DirectorsController.mount();
+
+	var authRouter = koaRouter();
+
+	authRouter.post("/auth/register", function*(next) {
 		yield next;
 		const SALT_WORK_FACTOR = 10;
 		const error = {message: "Username already exists"};
@@ -38,7 +57,7 @@ export default function(app) {
 		}
 	});
 
-	app.post("/auth/login", function*(next) {
+	authRouter.post("/auth/login", function*(next) {
 		yield next;
 		try {
 			const body = this.request.body;
@@ -57,6 +76,10 @@ export default function(app) {
 			this.body = err;
 		}
 	});
+
+	app
+		.use(authRouter.routes())
+		.use(authRouter.allowedMethods());
 
 	// generateApi(app, User, "/api");
 }
