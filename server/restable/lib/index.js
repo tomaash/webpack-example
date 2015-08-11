@@ -10,5 +10,5 @@ module.exports = generateApi = function(app, model, prefix) {
     prefix = '';
   }
   actions = generateActions(model);
-  return generateRoutes(app, model.modelName, actions, prefix);
+  return generateRoutes(app, model, actions, prefix);
 };

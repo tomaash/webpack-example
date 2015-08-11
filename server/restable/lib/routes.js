@@ -1,14 +1,20 @@
 var generateRoutes;
 var pluralize = require('pluralize');
 var koaRouter = require('koa-router');
-var clone = require('lodash').clone;
+var _ = require('lodash');
+
     // bodyParser = require('koa-body-parser');
 
-module.exports = generateRoutes = function(app, modelName, actions, prefix) {
+module.exports = generateRoutes = function(app, model, actions, prefix) {
   if (prefix == null) {
     prefix = '';
   }
-  modelName = pluralize(modelName);
+
+  const modelName = pluralize(model.modelName);
+
+  const collectionPrefix = prefix + ("/" + modelName);
+  const itemPrefix = prefix + ("/" + modelName + "/:id");
+
 
   // app.use(bodyParser());
   var router = koaRouter();
@@ -28,7 +34,7 @@ module.exports = generateRoutes = function(app, modelName, actions, prefix) {
     router.use(function*(next){
       if (this.request.method === "GET") {
         var conditions;
-        var query = clone(this.request.query);
+        var query = _.clone(this.request.query);
         try {
           conditions = (query.conditions && JSON.parse(query.conditions)) || {};
         } catch (err) {
@@ -47,15 +53,48 @@ module.exports = generateRoutes = function(app, modelName, actions, prefix) {
     })
   }
 
+  router.collectionHandler = function(method, name, cb) {
+    router[method](collectionPrefix + "/" + name, cb);
+  }
+
+  router.itemHandler = function(method, name, cb) {
+    router[method](itemPrefix + "/" + name, cb);
+  }
+
   router.mount = function() {
-    router.get(prefix + ("/" + modelName), actions.findAll);
-    router.get(prefix + ("/" + modelName + "/:id"), actions.findById);
-    router.post(prefix + ("/" + modelName), actions.create);
-    router.post(prefix + ("/" + modelName + "/:id"), actions.updateById);
-    router.del(prefix + ("/" + modelName + "/:id"), actions.deleteById);
-    router.put(prefix + ("/" + modelName), actions.create);
-    router.put(prefix + ("/" + modelName + "/:id"), actions.replaceById);
-    router.patch(prefix + ("/" + modelName + "/:id"), actions.updateById);
+    console.log('methods:');
+    console.log(model.schema.methods);
+
+    // Mount schema methods
+    _.keys(model.schema.methods).forEach(function(method){
+      //TODO: All schema methods are bound to get http verb. Do we need to be able to override this?
+      router.itemHandler("get", method, function*(next){
+        yield next;
+        var item = yield model.findById(this.params.id).exec();
+        var result = item[method](this.request.query);
+        //TODO: This way, 2 database calls are made. Is it possible to optimize?
+        this.body = yield result;///item;
+      });
+    });
+
+    // Mount static methods
+    _.keys(model.schema.statics).forEach(function(method){
+      //TODO: All schema methods are bound to get http verb. Do we need to be able to override this?
+      router.collectionHandler("get", method, function*(next){
+        yield next;
+        var result = model[method](this.request.query);
+        this.body = yield result;///item;
+      });
+    });
+
+    router.get(collectionPrefix, actions.findAll);
+    router.get(itemPrefix, actions.findById);
+    router.post(collectionPrefix, actions.create);
+    router.post(itemPrefix, actions.updateById);
+    router.del(itemPrefix, actions.deleteById);
+    router.put(collectionPrefix, actions.create);
+    router.put(itemPrefix, actions.replaceById);
+    router.patch(itemPrefix, actions.updateById);
     app
      .use(router.routes())
      .use(router.allowedMethods());

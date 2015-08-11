@@ -32,6 +32,12 @@ export default function(app) {
 		return conditions;
 	});
 
+	FilmsController.collectionHandler("get", "foo", function*(next) {
+		yield next;
+		console.log('foo handler');
+		this.body = 'foo handler';
+	});
+
 	FilmsController.mount();
 	var DirectorsController = generateApi(app, Director, "/api");
 	DirectorsController.mount();
